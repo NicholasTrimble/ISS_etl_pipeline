@@ -15,14 +15,14 @@ def fetch_iss_position():
         return {
             "latitude": float(data["iss_position"]["latitude"]),
             "longitude": float(data["iss_position"]["longitude"]),
-            "timestamp": datetime.now(timezone.utc)  # fix here
+            "timestamp": datetime.now(timezone.utc)
         }
     except:
         # fallback dummy data
         return {
             "latitude": 51.5,
             "longitude": -0.1,
-            "timestamp": datetime.now(timezone.utc)  # fix here too
+            "timestamp": datetime.now(timezone.utc)
         }
 
 def check_overhead(lat, long, observer_lat=MY_LAT, observer_long=MY_LONG):

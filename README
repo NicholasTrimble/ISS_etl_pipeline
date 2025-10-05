@@ -1,0 +1,22 @@
+ISS ETL Pipeline
+
+This project tracks the International Space Station (ISS) by fetching its position from an API, checking if it is overhead and if it’s night at a given location, and storing the data in a SQLite database. It runs automatically every 10 minutes and includes a Flask web dashboard to view the latest entries.
+
+How to use:
+
+Clone the repository to your local machine.
+
+Install dependencies: pip install -r requirements.txt
+
+Run the ETL pipeline: python Main.py
+
+Open the dashboard in your browser at http://127.0.0.1:5000/
+
+Go to /data to see the latest ISS entries.
+
+Files:
+Main.py: Runs the ETL pipeline
+database.py: Handles creating and saving data to the SQLite database
+view_data.py: Optional script to view database contents
+app.py: Flask web app to display the data
+iss_pipeline.db: SQLite database (auto-created when running the pipeline)

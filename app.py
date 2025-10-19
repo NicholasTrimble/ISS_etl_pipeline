@@ -1,5 +1,7 @@
-from flask import Flask
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 import sqlite3
+from database import add_user, remove_user
+from utils.weather_helpers import get_weather_data, calculate_visibility
 
 DB_NAME = "iss_pipeline.db"
 app = Flask(__name__)
@@ -38,10 +40,86 @@ def home():
     </head>
     <body>
         <h1>ISS ETL Dashboard</h1>
-        <p>Go to <a href="/data">/data</a> to see the latest ISS entries.</p>
+        <p>Go to <a href="/data">ISS location</a> to see the latest ISS entries.</p>
+        <p>Go to <a href="/map">Interactive map with Weather</a> to see the latest weather.</p>
+        <form action="/subscribe" method="POST" style="margin-top: 20px;" onsubmit="showAlert()">
+            <input type="email" name="email" placeholder="your_email@example.com" required
+            style="padding: 10px; font-size: 1em;">
+            <button type="submit" style="padding: 10px; font-size: 1em;">Subscribe</button>
+        </form>
+
     </body>
+    <script>
+        function showAlert() {
+        alert("Thank you! You are subscribed.");
+        }
+    </script>
     </html>
     """
+
+@app.route("/map")
+def show_map():
+    return render_template("map.html")
+
+
+@app.route("/subscribe", methods=["POST"])
+def subscribe():
+    email = request.form.get("email")
+    if email:
+        add_user(email)
+    return redirect("/")
+
+
+@app.route("/iss_position")
+def iss_position():
+    import requests
+    from datetime import datetime, timezone
+
+    try:
+        response = requests.get("http://api.open-notify.org/iss-now.json", timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        latitude = float(data["iss_position"]["latitude"])
+        longitude = float(data["iss_position"]["longitude"])
+        timestamp = datetime.now(timezone.utc).isoformat()
+    except:
+        # fallback
+        latitude = 51.5
+        longitude = -0.1
+        timestamp = datetime.now(timezone.utc).isoformat()
+
+    return jsonify({
+        "latitude": latitude,
+        "longitude": longitude,
+        "timestamp": timestamp
+    })
+
+
+@app.route("/weather_info")
+def weather_info_route():
+    # Get latitude and longitude from query parameters
+    lat = float(request.args.get("lat", 51.507351))  # default London
+    lon = float(request.args.get("lon", -0.127758))
+
+    # Determine if it’s night (optional, default True for now)
+    is_night_time = True
+
+    # Call weather helper to get full weather info
+    weather_info = get_weather_data(lat, lon, is_night_time)
+
+    # Return JSON for JS to read
+    return jsonify(weather_info)
+
+
+@app.route("/unsubscribe")
+def unsubscribe():
+    email = request.args.get("email")
+    if email:
+        remove_user(email)
+        return f"Email {email} has been unsubscribed."
+    return "No email provided."
+
+
 
 @app.route("/data")
 def show_data():

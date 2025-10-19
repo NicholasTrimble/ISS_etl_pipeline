@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ISS & Weather Map</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!--CSS-->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map { height: 100vh; width: 100%; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <!--JS-->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script>
+
+        var map = L.map('map').setView([51.507351, -0.127758], 5);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+
+        // ISS marker
+        var issMarker = L.marker([0, 0], {icon: L.icon({
+            iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d0/International_Space_Station.svg',
+            iconSize: [50, 32],
+            iconAnchor: [25, 16]
+        })}).addTo(map);
+
+
+        // Update ISS position
+        function updateISSPosition() {
+            fetch("/iss_position")
+                .then(response => response.json())
+                .then(data => {
+                    issMarker.setLatLng([data.latitude, data.longitude]);
+                })
+                .catch(err => console.log("ISS fetch error:", err));
+        }
+        setInterval(updateISSPosition, 5000);
+        updateISSPosition();
+
+
+        // Weather on click
+        map.on('click', function(e) {
+            var lat = e.latlng.lat;
+            var lon = e.latlng.lng;
+
+            fetch(`/weather_info?lat=${lat}&lon=${lon}`)
+                .then(response => response.json())
+                .then(data => {
+                    var popupContent = `
+                        <b>Location:</b> ${lat.toFixed(4)}, ${lon.toFixed(4)}<br>
+                        <b>Temperature:</b> ${data.temperature_celsius}°C / ${data.temperature_fahrenheit}°F<br>
+                        <b>Cloud Coverage:</b> ${data.cloud_percent}%<br>
+                        <b>Visibility:</b> ${data.visibility}
+                    `;
+                    L.popup()
+                        .setLatLng([lat, lon])
+                        .setContent(popupContent)
+                        .openOn(map);
+                })
+                .catch(err => {
+                    L.popup()
+                        .setLatLng([lat, lon])
+                        .setContent("Weather info unavailable")
+                        .openOn(map);
+                });
+        });
+
+    </script>
+</body>
+</html>

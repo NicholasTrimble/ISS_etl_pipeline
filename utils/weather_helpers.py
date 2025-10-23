@@ -1,7 +1,8 @@
 import requests
 
-# Use your actual API key here
-API_KEY_OPENWEATHER = "ddcaaa2b45b511ae9ea37a8633d8aa66"
+
+import os
+API_KEY_OPENWEATHER = os.getenv("API_KEY_OPENWEATHER")
 
 def get_cloud_coverage(latitude, longitude):
     """Fetch cloud coverage for a location using OpenWeatherMap API."""

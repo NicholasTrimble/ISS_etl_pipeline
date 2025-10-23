@@ -39,7 +39,7 @@ def home():
         </style>
     </head>
     <body>
-        <h1>ISS ETL Dashboard</h1>
+        <h1>Interactive Map With Weather and ISS ETL Dashboard</h1>
         <p>Go to <a href="/data">ISS location</a> to see the latest ISS entries.</p>
         <p>Go to <a href="/map">Interactive map with Weather</a> to see the latest weather.</p>
         <form action="/subscribe" method="POST" style="margin-top: 20px;" onsubmit="showAlert()">

@@ -2,6 +2,13 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 import sqlite3
 from database import add_user, remove_user
 from utils.weather_helpers import get_weather_data, calculate_visibility
+import os
+from dotenv import load_dotenv
+import utils.astronomy_api as astronomy_api
+
+
+
+load_dotenv()
 
 DB_NAME = "iss_pipeline.db"
 app = Flask(__name__)
@@ -109,6 +116,26 @@ def weather_info_route():
 
     # Return JSON for JS to read
     return jsonify(weather_info)
+
+
+@app.route("/star_chart")
+def star_chart():
+    from flask import request, jsonify
+
+    lat = request.args.get("lat")
+    lon = request.args.get("lon")
+
+    if not lat or not lon:
+        return jsonify({"error": "Missing lat/lon"}), 400
+
+    try:
+        # note the module prefix
+        image_url = astronomy_api.generate_star_chart(float(lat), float(lon))
+        return jsonify({"imageUrl": image_url})
+    except Exception as e:
+        print("Star chart error:", e)
+        return jsonify({"error": str(e)}), 500
+
 
 
 @app.route("/unsubscribe")

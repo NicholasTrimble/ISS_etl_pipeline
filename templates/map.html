@@ -9,6 +9,12 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
         #map { height: 100vh; width: 100%; }
+        .popup-button {
+            margin-top: 6px;
+            padding: 6px 10px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -18,7 +24,6 @@
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
     <script>
-
         var map = L.map('map').setView([51.507351, -0.127758], 5);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -26,14 +31,12 @@
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
-
         // ISS marker
         var issMarker = L.marker([0, 0], {icon: L.icon({
             iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/d/d0/International_Space_Station.svg',
             iconSize: [50, 32],
             iconAnchor: [25, 16]
         })}).addTo(map);
-
 
         // Update ISS position
         function updateISSPosition() {
@@ -47,34 +50,89 @@
         setInterval(updateISSPosition, 5000);
         updateISSPosition();
 
+        // Helper: format floats safely
+        function fmt(n, d=4) {
+            return (typeof n === "number") ? n.toFixed(d) : n;
+        }
 
         // Weather on click
         map.on('click', function(e) {
-            var lat = e.latlng.lat;
-            var lon = e.latlng.lng;
+            const lat = e.latlng.lat;
+            const lon = e.latlng.lng;
 
             fetch(`/weather_info?lat=${lat}&lon=${lon}`)
-                .then(response => response.json())
+                .then(resp => resp.json())
                 .then(data => {
-                    var popupContent = `
-                        <b>Location:</b> ${lat.toFixed(4)}, ${lon.toFixed(4)}<br>
-                        <b>Temperature:</b> ${data.temperature_celsius}°C / ${data.temperature_fahrenheit}°F<br>
-                        <b>Cloud Coverage:</b> ${data.cloud_percent}%<br>
-                        <b>Visibility:</b> ${data.visibility}
+                    // Provide fallbacks if any field is null
+                    const tempC = data.temperature_celsius ?? "N/A";
+                    const tempF = data.temperature_fahrenheit ?? "N/A";
+                    const cloud = data.cloud_percent ?? "N/A";
+                    const visibility = data.visibility ?? "N/A";
+
+                    // Unique IDs for popup elements
+                    const safeLat = lat.toFixed(5).replace('.', '_').replace('-', 'm');
+                    const safeLon = lon.toFixed(5).replace('.', '_').replace('-', 'm');
+                    const btnId = `show-sky-btn-${safeLat}-${safeLon}`;
+
+                    const popupContent = `
+                        <div>
+                            <b>Location:</b> ${fmt(lat,4)}, ${fmt(lon,4)}<br>
+                            <b>Temperature:</b> ${tempC}°C / ${tempF}°F<br>
+                            <b>Cloud Coverage:</b> ${cloud}%<br>
+                            <b>Visibility:</b> ${visibility}<br>
+                            <button id="${btnId}" class="popup-button">Show Night Sky</button>
+                        </div>
                     `;
-                    L.popup()
+
+                    const popup = L.popup()
                         .setLatLng([lat, lon])
                         .setContent(popupContent)
                         .openOn(map);
+
+                    // Attach click listener after popup is in DOM
+                    setTimeout(() => {
+                        const btn = document.getElementById(btnId);
+                        if (!btn) return;
+
+                        btn.addEventListener("click", async () => {
+                            // disable button & show loading text
+                            const originalText = btn.textContent;
+                            btn.disabled = true;
+                            btn.textContent = "Loading…";
+
+                            try {
+                                const r = await fetch(`/star_chart?lat=${lat}&lon=${lon}`);
+                                const j = await r.json();
+                                if (j.error) {
+                                    alert("Error: " + j.error);
+                                    return;
+                                }
+                                if (!j.imageUrl) {
+                                    alert("Star chart unavailable");
+                                    return;
+                                }
+
+                                // Open the returned image URL in a new tab/window
+                                window.open(j.imageUrl, "_blank");
+                            } catch (err) {
+                                console.error("Failed to fetch star chart", err);
+                                alert("Failed to fetch star chart. See console for details.");
+                            } finally {
+                                // restore button state
+                                btn.disabled = false;
+                                btn.textContent = originalText;
+                            }
+                        });
+                    }, 10); // tiny delay ensures DOM elements exist
                 })
                 .catch(err => {
+                    console.error("Weather fetch error:", err);
                     L.popup()
                         .setLatLng([lat, lon])
                         .setContent("Weather info unavailable")
                         .openOn(map);
                 });
         });
-
     </script>
 </body>
 </html>

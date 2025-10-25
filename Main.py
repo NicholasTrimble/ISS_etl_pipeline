@@ -48,6 +48,16 @@ def run_etl():
     save_to_db(iss_data)
     print(f"ETL run complete: {iss_data}")
 
+
+def stars_above_location(latitude, longitude):
+    try:
+        response = requests.get(f"https://api.open-notify.org/iss-now.json", timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        return data["iss_position"]["latitude"], data["iss_position"]["longitude"]
+    except:
+        return None
+
 if __name__ == "__main__":
     init_db()
     run_etl()
